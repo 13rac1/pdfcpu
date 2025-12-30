@@ -73,7 +73,7 @@ func TestRemoveFormFields(t *testing.T) {
 
 	msg := "TestRemoveFormFields"
 	inFile := filepath.Join(samplesDir, "form", "demo", "english.pdf")
-	outFile := filepath.Join(samplesDir, "form", "remove", "removedField.pdf")
+	outFile := filepath.Join(t.TempDir(), "removedField.pdf")
 
 	ss, err := listFormFieldsFile(t, inFile, conf)
 	if err != nil {
@@ -98,6 +98,7 @@ func TestRemoveFormFields(t *testing.T) {
 
 func TestResetFormFields(t *testing.T) {
 
+	tmpDir := t.TempDir()
 	for _, tt := range []struct {
 		msg     string
 		inFile  string
@@ -110,7 +111,7 @@ func TestResetFormFields(t *testing.T) {
 		{"TestResetPersonForm", "person.pdf", "person-reset.pdf"},            // Person Form
 	} {
 		inFile := filepath.Join(samplesDir, "form", "demoSinglePage", tt.inFile)
-		outFile := filepath.Join(samplesDir, "form", "reset", tt.outFile)
+		outFile := filepath.Join(tmpDir, tt.outFile)
 		if err := api.ResetFormFieldsFile(inFile, outFile, nil, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
@@ -120,6 +121,7 @@ func TestResetFormFields(t *testing.T) {
 
 func TestLockFormFields(t *testing.T) {
 
+	tmpDir := t.TempDir()
 	for _, tt := range []struct {
 		msg     string
 		inFile  string
@@ -132,7 +134,7 @@ func TestLockFormFields(t *testing.T) {
 		{"TestLockPersonForm", "person.pdf", "person-locked.pdf"},            // Person Form
 	} {
 		inFile := filepath.Join(samplesDir, "form", "demoSinglePage", tt.inFile)
-		outFile := filepath.Join(samplesDir, "form", "lock", tt.outFile)
+		outFile := filepath.Join(tmpDir, tt.outFile)
 		if err := api.LockFormFieldsFile(inFile, outFile, nil, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
@@ -141,21 +143,29 @@ func TestLockFormFields(t *testing.T) {
 
 func TestUnlockFormFields(t *testing.T) {
 
+	tmpDir := t.TempDir()
 	for _, tt := range []struct {
-		msg     string
-		inFile  string
-		outFile string
+		msg        string
+		srcFile    string
+		lockedFile string
+		outFile    string
 	}{
-		{"TestUnlockFormEN", "english-locked.pdf", "english-unlocked.pdf"},              // Core font (Helvetica)
-		{"TestUnlockFormUK", "ukrainian-locked.pdf", "ukrainian-unlocked.pdf"},          // User font (Roboto-Regular)
-		{"TestUnlockFormRTL", "arabic-locked.pdf", "arabic-unlocked.pdf"},               // User font RTL (Roboto-Regular)
-		{"TestUnlockFormCJK", "chineseSimple-locked.pdf", "chineseSimple-unlocked.pdf"}, // User font CJK (UnifontMedium)
-		{"TestUnlockPersonForm", "person-locked.pdf", "person-unlocked.pdf"},            // Person Form
+		{"TestUnlockFormEN", "english.pdf", "english-locked.pdf", "english-unlocked.pdf"},              // Core font (Helvetica)
+		{"TestUnlockFormUK", "ukrainian.pdf", "ukrainian-locked.pdf", "ukrainian-unlocked.pdf"},          // User font (Roboto-Regular)
+		{"TestUnlockFormRTL", "arabic.pdf", "arabic-locked.pdf", "arabic-unlocked.pdf"},               // User font RTL (Roboto-Regular)
+		{"TestUnlockFormCJK", "chineseSimple.pdf", "chineseSimple-locked.pdf", "chineseSimple-unlocked.pdf"}, // User font CJK (UnifontMedium)
+		{"TestUnlockPersonForm", "person.pdf", "person-locked.pdf", "person-unlocked.pdf"},            // Person Form
 	} {
-		inFile := filepath.Join(samplesDir, "form", "lock", tt.inFile)
-		outFile := filepath.Join(samplesDir, "form", "lock", tt.outFile)
-		if err := api.UnlockFormFieldsFile(inFile, outFile, nil, conf); err != nil {
-			t.Fatalf("%s: %v\n", tt.msg, err)
+		// First lock the file
+		srcFile := filepath.Join(samplesDir, "form", "demoSinglePage", tt.srcFile)
+		lockedFile := filepath.Join(tmpDir, tt.lockedFile)
+		if err := api.LockFormFieldsFile(srcFile, lockedFile, nil, conf); err != nil {
+			t.Fatalf("%s lock: %v\n", tt.msg, err)
+		}
+		// Then unlock it
+		outFile := filepath.Join(tmpDir, tt.outFile)
+		if err := api.UnlockFormFieldsFile(lockedFile, outFile, nil, conf); err != nil {
+			t.Fatalf("%s unlock: %v\n", tt.msg, err)
 		}
 	}
 }
@@ -163,7 +173,7 @@ func TestUnlockFormFields(t *testing.T) {
 func TestExportForm(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
-	outDir := filepath.Join(samplesDir, "form", "export")
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg     string
@@ -177,7 +187,7 @@ func TestExportForm(t *testing.T) {
 		{"TestExportPersonForm", "person.pdf", "person.json"},            // Person Form
 	} {
 		inFile := filepath.Join(inDir, tt.inFile)
-		outFile := filepath.Join(outDir, tt.outFile)
+		outFile := filepath.Join(tmpDir, tt.outFile)
 		if err := api.ExportFormFile(inFile, outFile, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
@@ -188,7 +198,7 @@ func TestFillForm(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
 	jsonDir := filepath.Join(samplesDir, "form", "fill")
-	outDir := jsonDir
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg        string
@@ -204,7 +214,7 @@ func TestFillForm(t *testing.T) {
 	} {
 		inFile := filepath.Join(inDir, tt.inFile)
 		inFileJSON := filepath.Join(jsonDir, tt.inFileJSON)
-		outFile := filepath.Join(outDir, tt.outFile)
+		outFile := filepath.Join(tmpDir, tt.outFile)
 		if err := api.FillFormFile(inFile, inFileJSON, outFile, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
@@ -215,7 +225,7 @@ func TestMultiFillFormJSON(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
 	jsonDir := filepath.Join(samplesDir, "form", "multifill", "json")
-	outDir := jsonDir
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg        string
@@ -227,7 +237,7 @@ func TestMultiFillFormJSON(t *testing.T) {
 	} {
 		inFile := filepath.Join(inDir, tt.inFile)
 		inFileJSON := filepath.Join(jsonDir, tt.inFileJSON)
-		if err := api.MultiFillFormFile(inFile, inFileJSON, outDir, inFile, false, conf); err != nil {
+		if err := api.MultiFillFormFile(inFile, inFileJSON, tmpDir, inFile, false, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
 	}
@@ -237,7 +247,7 @@ func TestMultiFillFormJSONMerged(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
 	jsonDir := filepath.Join(samplesDir, "form", "multifill", "json")
-	outDir := filepath.Join(jsonDir, "merge")
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg        string
@@ -249,7 +259,7 @@ func TestMultiFillFormJSONMerged(t *testing.T) {
 	} {
 		inFile := filepath.Join(inDir, tt.inFile)
 		inFileJSON := filepath.Join(jsonDir, tt.inFileJSON)
-		if err := api.MultiFillFormFile(inFile, inFileJSON, outDir, inFile, true, conf); err != nil {
+		if err := api.MultiFillFormFile(inFile, inFileJSON, tmpDir, inFile, true, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
 	}
@@ -259,7 +269,7 @@ func TestMultiFillFormCSV(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
 	csvDir := filepath.Join(samplesDir, "form", "multifill", "csv")
-	outDir := csvDir
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg       string
@@ -272,7 +282,7 @@ func TestMultiFillFormCSV(t *testing.T) {
 
 		inFile := filepath.Join(inDir, tt.inFile)
 		inFileCSV := filepath.Join(csvDir, tt.inFileCSV)
-		if err := api.MultiFillFormFile(inFile, inFileCSV, outDir, inFile, false, conf); err != nil {
+		if err := api.MultiFillFormFile(inFile, inFileCSV, tmpDir, inFile, false, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
 	}
@@ -282,7 +292,7 @@ func TestMultiFillFormCSVMerged(t *testing.T) {
 
 	inDir := filepath.Join(samplesDir, "form", "demoSinglePage")
 	csvDir := filepath.Join(samplesDir, "form", "multifill", "csv")
-	outDir := filepath.Join(csvDir, "merge")
+	tmpDir := t.TempDir()
 
 	for _, tt := range []struct {
 		msg       string
@@ -295,7 +305,7 @@ func TestMultiFillFormCSVMerged(t *testing.T) {
 
 		inFile := filepath.Join(inDir, tt.inFile)
 		inFileCSV := filepath.Join(csvDir, tt.inFileCSV)
-		if err := api.MultiFillFormFile(inFile, inFileCSV, outDir, inFile, true, conf); err != nil {
+		if err := api.MultiFillFormFile(inFile, inFileCSV, tmpDir, inFile, true, conf); err != nil {
 			t.Fatalf("%s: %v\n", tt.msg, err)
 		}
 	}
