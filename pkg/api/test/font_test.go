@@ -98,6 +98,7 @@ func createCoreFontDemoPage(xRefTable *model.XRefTable, w, h int, fontName strin
 func TestCoreFontDemoPDF(t *testing.T) {
 	msg := "TestCoreFontDemoPDF"
 	w, h := 600, 600
+	tmpDir := t.TempDir()
 	for _, fn := range font.CoreFontNames() {
 		xRefTable, err := pdfcpu.CreateDemoXRef()
 		if err != nil {
@@ -111,7 +112,7 @@ func TestCoreFontDemoPDF(t *testing.T) {
 		if err = pdfcpu.AddPageTreeWithSamplePage(xRefTable, rootDict, p); err != nil {
 			t.Fatalf("%s: %v\n", msg, err)
 		}
-		outFile := filepath.Join("..", "..", "samples", "fonts", "core", fn+".pdf")
+		outFile := filepath.Join(tmpDir, fn+".pdf")
 		createAndValidate(t, xRefTable, outFile, msg)
 	}
 }
@@ -119,11 +120,11 @@ func TestCoreFontDemoPDF(t *testing.T) {
 func TestUserFontDemoPDF(t *testing.T) {
 	msg := "TestUserFontDemoPDF"
 
-	// For each installed user font create a single page pdf cheat sheet for every unicode plane covered
-	// in pkg/samples/fonts/user.
+	// For each installed user font create a single page pdf cheat sheet for every unicode plane covered.
+	tmpDir := t.TempDir()
 	for _, fn := range font.UserFontNames() {
 		fmt.Println(fn)
-		if err := api.CreateUserFontDemoFiles(filepath.Join("..", "..", "samples", "fonts", "user"), fn); err != nil {
+		if err := api.CreateUserFontDemoFiles(tmpDir, fn); err != nil {
 			t.Fatalf("%s: %v\n", msg, err)
 		}
 	}
