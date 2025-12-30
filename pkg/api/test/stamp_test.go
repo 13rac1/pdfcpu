@@ -26,14 +26,10 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 )
 
-func testAddWatermarks(t *testing.T, msg, inFile, outFile string, selectedPages []string, mode, modeParam, desc string, onTop bool) {
+func testAddWatermarks(t *testing.T, msg, inFile, outFile, tmpDir string, selectedPages []string, mode, modeParam, desc string, onTop bool) {
 	t.Helper()
 	inFile = filepath.Join(inDir, inFile)
-	s := "watermark"
-	if onTop {
-		s = "stamp"
-	}
-	outFile = filepath.Join(samplesDir, s, mode, outFile)
+	outFile = filepath.Join(tmpDir, outFile)
 
 	var err error
 	switch mode {
@@ -463,8 +459,9 @@ func TestAddWatermarks(t *testing.T) {
 			filepath.Join(inDir, "zineTest.pdf:3:3"),
 			"scale:.2, pos:tr, off:-10 -10, rot:0"},
 	} {
-		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, false)
-		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, true)
+		tmpDir := t.TempDir()
+		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tmpDir, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, false)
+		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tmpDir, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, true)
 	}
 }
 
@@ -494,15 +491,15 @@ func TestAddStampWithLink(t *testing.T) {
 			"url:pdfcpu.io, scale:.33 abs, rot:45"},
 	} {
 		// Links supported for stamps only (watermark onTop:true).
-		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, true)
+		tmpDir := t.TempDir()
+		testAddWatermarks(t, tt.msg, tt.inFile, tt.outFile, tmpDir, tt.selectedPages, tt.mode, tt.modeParm, tt.wmConf, true)
 	}
-
 }
 
 func TestCropBox(t *testing.T) {
 	msg := "TestCropBox"
 	inFile := filepath.Join(inDir, "empty.pdf")
-	outFile := filepath.Join(samplesDir, "stamp", "pdf", "PdfWithCropBox.pdf")
+	outFile := filepath.Join(t.TempDir(), "PdfWithCropBox.pdf")
 	pdfFile := filepath.Join(inDir, "grid_example.pdf")
 
 	// Create a context.
@@ -543,7 +540,7 @@ func hasWatermarks(inFile string, t *testing.T) bool {
 func TestStampingLifecycle(t *testing.T) {
 	msg := "TestStampingLifecycle"
 	inFile := filepath.Join(inDir, "Acroforms2.pdf")
-	outFile := filepath.Join(outDir, "stampLC.pdf")
+	outFile := filepath.Join(t.TempDir(), "stampLC.pdf")
 	onTop := true // we are testing stamps
 
 	// Check for existing stamps.
@@ -615,7 +612,7 @@ func TestStampingLifecycle(t *testing.T) {
 func TestRecycleWM(t *testing.T) {
 	msg := "TestRecycleWM"
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "watermark", "text", "TextRecycled.pdf")
+	outFile := filepath.Join(t.TempDir(), "TextRecycled.pdf")
 	onTop := false // we are testing watermarks
 
 	desc := "pos:tl, points:22, rot:0, scale:1 abs, off:0 -5, opacity:0.3"
