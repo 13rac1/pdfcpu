@@ -574,7 +574,7 @@ func TestAddLinkAnnotationWithDest(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "Walden.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "LinkAnnotWithDestTopLeft.pdf")
+	outFile := filepath.Join(t.TempDir(), "LinkAnnotWithDestTopLeft.pdf")
 
 	// Create internal link:
 	// Add a 100x100 link rectangle on the bottom left corner of page 2.
@@ -609,7 +609,7 @@ func TestAddAnnotationsFile(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "Annotations.pdf")
+	outFile := filepath.Join(t.TempDir(), "Annotations.pdf")
 
 	// Add text annotation.
 	if err := api.AddAnnotationsFile(inFile, outFile, nil, textAnn, nil, false); err != nil {
@@ -693,7 +693,7 @@ func TestPopupAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "PopupAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "PopupAnnotation.pdf")
 
 	incr := false
 	pageNr := 1
@@ -747,7 +747,7 @@ func TestInkAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "InkAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "InkAnnotation.pdf")
 
 	p1 := model.InkPath{100., 542., 150., 492., 200., 542.}
 	p2 := model.InkPath{100, 592, 150, 592}
@@ -782,7 +782,7 @@ func TestHighlightAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "testWithText.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "HighlightAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "HighlightAnnotation.pdf")
 
 	r := types.NewRectangle(205, 624.16, 400, 645.88)
 
@@ -819,7 +819,7 @@ func TestUnderlineAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "testWithText.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "UnderlineAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "UnderlineAnnotation.pdf")
 
 	r := types.NewRectangle(205, 624.16, 400, 645.88)
 
@@ -856,7 +856,7 @@ func TestSquigglyAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "testWithText.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "SquigglyAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "SquigglyAnnotation.pdf")
 
 	r := types.NewRectangle(205, 624.16, 400, 645.88)
 
@@ -893,7 +893,7 @@ func TestStrikeOutAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "testWithText.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "StrikeOutAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "StrikeOutAnnotation.pdf")
 
 	r := types.NewRectangle(205, 624.16, 400, 645.88)
 
@@ -930,7 +930,7 @@ func TestFreeTextAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "FreeTextAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "FreeTextAnnotation.pdf")
 
 	// Add Free text annotation.
 	if err := api.AddAnnotationsFile(inFile, outFile, nil, freeTextAnn, nil, false); err != nil {
@@ -944,7 +944,7 @@ func TestPolyLineAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "PolyLineAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "PolyLineAnnotation.pdf")
 
 	leButt := model.LEButt
 	leOpenArrow := model.LEOpenArrow
@@ -985,7 +985,7 @@ func TestPolygonAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "PolygonAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "PolygonAnnotation.pdf")
 
 	polygonAnn := model.NewPolygonAnnotation(
 		*types.NewRectangle(30, 30, 110, 110), // rect
@@ -1022,7 +1022,7 @@ func TestLineAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "LineAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "LineAnnotation.pdf")
 
 	leOpenArrow := model.LEOpenArrow
 
@@ -1068,7 +1068,7 @@ func TestCaretAnnotation(t *testing.T) {
 	// Best viewed with Adobe Reader.
 
 	inFile := filepath.Join(inDir, "test.pdf")
-	outFile := filepath.Join(samplesDir, "annotations", "CaretAnnotation.pdf")
+	outFile := filepath.Join(t.TempDir(), "CaretAnnotation.pdf")
 
 	caretAnn := model.NewCaretAnnotation(
 		*types.NewRectangle(30, 30, 110, 110), // rect
