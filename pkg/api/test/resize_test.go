@@ -29,6 +29,7 @@ func TestResizeByScaleFactor(t *testing.T) {
 	msg := "TestResizeByScaleFactor"
 
 	inFile := filepath.Join(inDir, "test.pdf")
+	tmpDir := t.TempDir()
 
 	// Enlarge by scale factor 2.
 	res, err := pdfcpu.ParseResizeConfig("sc:2", types.POINTS)
@@ -36,7 +37,7 @@ func TestResizeByScaleFactor(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile := filepath.Join(samplesDir, "resize", "enlargeByScaleFactor.pdf")
+	outFile := filepath.Join(tmpDir, "enlargeByScaleFactor.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -47,7 +48,7 @@ func TestResizeByScaleFactor(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile = filepath.Join(samplesDir, "resize", "shrinkByScaleFactor.pdf")
+	outFile = filepath.Join(tmpDir, "shrinkByScaleFactor.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -57,6 +58,7 @@ func TestResizeByWidthOrHeight(t *testing.T) {
 	msg := "TestResizeByWidthOrHeight"
 
 	inFile := filepath.Join(inDir, "test.pdf")
+	tmpDir := t.TempDir()
 
 	// Set width to 200 points.
 	res, err := pdfcpu.ParseResizeConfig("dim:200 0", types.POINTS)
@@ -64,7 +66,7 @@ func TestResizeByWidthOrHeight(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile := filepath.Join(samplesDir, "resize", "resizeByWidth.pdf")
+	outFile := filepath.Join(tmpDir, "resizeByWidth.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -75,7 +77,7 @@ func TestResizeByWidthOrHeight(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile = filepath.Join(samplesDir, "resize", "resizeByHeight.pdf")
+	outFile = filepath.Join(tmpDir, "resizeByHeight.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -85,6 +87,7 @@ func TestResizeToFormSize(t *testing.T) {
 	msg := "TestResizeToPaperSize"
 
 	inFile := filepath.Join(inDir, "test.pdf")
+	tmpDir := t.TempDir()
 
 	// Resize to A3 and keep orientation.
 	res, err := pdfcpu.ParseResizeConfig("form:A3", types.POINTS)
@@ -92,7 +95,7 @@ func TestResizeToFormSize(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile := filepath.Join(samplesDir, "resize", "resizeToA3.pdf")
+	outFile := filepath.Join(tmpDir, "resizeToA3.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -103,7 +106,7 @@ func TestResizeToFormSize(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile = filepath.Join(samplesDir, "resize", "resizeToA4L.pdf")
+	outFile = filepath.Join(tmpDir, "resizeToA4L.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -113,6 +116,7 @@ func TestResizeToDimensions(t *testing.T) {
 	msg := "TestResizeToDimensions"
 
 	inFile := filepath.Join(inDir, "test.pdf")
+	tmpDir := t.TempDir()
 
 	// Resize to 400 x 200 and keep orientation of input file.
 	// Apply background color to unused space.
@@ -121,7 +125,7 @@ func TestResizeToDimensions(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile := filepath.Join(samplesDir, "resize", "resizeToDimensionsKeep.pdf")
+	outFile := filepath.Join(tmpDir, "resizeToDimensionsKeep.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
@@ -133,7 +137,7 @@ func TestResizeToDimensions(t *testing.T) {
 		t.Fatalf("%s invalid resize configuration: %v\n", msg, err)
 	}
 
-	outFile = filepath.Join(samplesDir, "resize", "resizeToDimensionsEnforce.pdf")
+	outFile = filepath.Join(tmpDir, "resizeToDimensionsEnforce.pdf")
 	if err := api.ResizeFile(inFile, outFile, nil, res, nil); err != nil {
 		t.Fatalf("%s resize: %v\n", msg, err)
 	}
