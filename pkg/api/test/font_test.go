@@ -113,7 +113,12 @@ func TestCoreFontDemoPDF(t *testing.T) {
 			t.Fatalf("%s: %v\n", msg, err)
 		}
 		outFile := filepath.Join(tmpDir, fn+".pdf")
-		createAndValidate(t, xRefTable, outFile, msg)
+		if err := api.CreatePDFFile(xRefTable, outFile, nil); err != nil {
+			t.Fatalf("%s: %v\n", msg, err)
+		}
+		if err := api.ValidateFile(outFile, nil); err != nil {
+			t.Fatalf("%s: %v\n", msg, err)
+		}
 	}
 }
 
