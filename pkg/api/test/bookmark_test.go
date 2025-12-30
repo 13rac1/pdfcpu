@@ -69,7 +69,7 @@ func TestListBookmarks(t *testing.T) {
 func TestAddDuplicateBookmarks(t *testing.T) {
 	msg := "TestAddDuplicateBookmarks"
 	inFile := filepath.Join(inDir, "CenterOfWhy.pdf")
-	outFile := filepath.Join("..", "..", "samples", "bookmarks", "bookmarkDuplicates.pdf")
+	outFile := filepath.Join(t.TempDir(), "bookmarkDuplicates.pdf")
 
 	bms := []pdfcpu.Bookmark{
 		{PageFrom: 1, Title: "Parent1",
@@ -98,14 +98,14 @@ func TestAddDuplicateBookmarks(t *testing.T) {
 func TestAddSimpleBookmarks(t *testing.T) {
 	msg := "TestAddSimpleBookmarks"
 	inFile := filepath.Join(inDir, "CenterOfWhy.pdf")
-	outFile := filepath.Join("..", "..", "samples", "bookmarks", "bookmarkSimple.pdf")
+	outFile := filepath.Join(t.TempDir(), "bookmarkSimple.pdf")
 
 	bookmarkColor := color.NewSimpleColor(0xab6f30)
 
 	// TODO Emoji support!
 
 	bms := []pdfcpu.Bookmark{
-		{PageFrom: 1, Title: "Page 1: Applicant’s Form"},
+		{PageFrom: 1, Title: "Page 1: Applicant's Form"},
 		{PageFrom: 2, Title: "Page 2: Bold 这是一个测试", Bold: true},
 		{PageFrom: 3, Title: "Page 3: Italic 测试 尾巴", Italic: true, Bold: true},
 		{PageFrom: 4, Title: "Page 4: Bold & Italic", Bold: true, Italic: true},
@@ -127,7 +127,7 @@ func TestAddSimpleBookmarks(t *testing.T) {
 func TestAddBookmarkTree2Levels(t *testing.T) {
 	msg := "TestAddBookmarkTree2Levels"
 	inFile := filepath.Join(inDir, "CenterOfWhy.pdf")
-	outFile := filepath.Join("..", "..", "samples", "bookmarks", "bookmarkTree.pdf")
+	outFile := filepath.Join(t.TempDir(), "bookmarkTree.pdf")
 
 	bms := []pdfcpu.Bookmark{
 		{PageFrom: 1, Title: "Page 1: Level 1", Color: &color.Green,
@@ -158,7 +158,7 @@ func TestRemoveBookmarks(t *testing.T) {
 	msg := "TestRemoveBookmarks"
 	inDir := filepath.Join("..", "..", "samples", "bookmarks")
 	inFile := filepath.Join(inDir, "bookmarkTree.pdf")
-	outFile := filepath.Join(inDir, "bookmarkTreeNoBookmarks.pdf")
+	outFile := filepath.Join(t.TempDir(), "bookmarkTreeNoBookmarks.pdf")
 
 	if err := api.RemoveBookmarksFile(inFile, outFile, nil); err != nil {
 		t.Fatalf("%s removeBookmarks: %v\n", msg, err)
@@ -172,7 +172,7 @@ func TestExportBookmarks(t *testing.T) {
 	msg := "TestExportBookmarks"
 	inDir := filepath.Join("..", "..", "samples", "bookmarks")
 	inFile := filepath.Join(inDir, "bookmarkTree.pdf")
-	outFile := filepath.Join(inDir, "bookmarkTree.json")
+	outFile := filepath.Join(t.TempDir(), "bookmarkTree.json")
 
 	if err := api.ExportBookmarksFile(inFile, outFile, nil); err != nil {
 		t.Fatalf("%s export bookmarks: %v\n", msg, err)
@@ -183,8 +183,16 @@ func TestImportBookmarks(t *testing.T) {
 	msg := "TestImportBookmarks"
 	inDir := filepath.Join("..", "..", "samples", "bookmarks")
 	inFile := filepath.Join(inDir, "bookmarkTree.pdf")
-	inFileJSON := filepath.Join(inDir, "bookmarkTree.json")
-	outFile := filepath.Join(inDir, "bookmarkTreeImported.pdf")
+
+	// First export bookmarks to a temp file, then import them
+	tmpDir := t.TempDir()
+	inFileJSON := filepath.Join(tmpDir, "bookmarkTree.json")
+	outFile := filepath.Join(tmpDir, "bookmarkTreeImported.pdf")
+
+	// Export first to create the JSON file
+	if err := api.ExportBookmarksFile(inFile, inFileJSON, nil); err != nil {
+		t.Fatalf("%s export bookmarks: %v\n", msg, err)
+	}
 
 	replace := true
 	if err := api.ImportBookmarksFile(inFile, inFileJSON, outFile, replace, nil); err != nil {
