@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The pdfcpu Authors.
+Copyright 2018-2026 The pdfcpu Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -116,8 +116,53 @@ func createSMaskObject(xRefTable *XRefTable, buf []byte, w, h, bpc int) (*types.
 	return xRefTable.IndRefForNewObject(*sd)
 }
 
+// writePalettedImageBuf extracts palette indices for use with Indexed color space.
+// This preserves the original palette structure rather than expanding to RGB.
+func writePalettedImageBuf(img *image.Paletted) []byte {
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	buf := make([]byte, width*height)
+
+	i := 0
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			buf[i] = img.ColorIndexAt(x, y)
+			i++
+		}
+	}
+
+	return buf
+}
+
+// createIndexedColorSpace creates an Indexed color space array from a palette.
+// Returns [Indexed, DeviceRGB, hival, lookup_table_string].
+func createIndexedColorSpace(palette color.Palette) types.Array {
+	hival := len(palette) - 1
+
+	// Build the RGB lookup table: 3 bytes per palette entry
+	lookupTable := make([]byte, len(palette)*3)
+	for i, c := range palette {
+		r, g, b, _ := c.RGBA()
+		// RGBA() returns uint32 values in the range [0, 65535]
+		// Convert to 8-bit values [0, 255]
+		lookupTable[i*3] = byte(r >> 8)
+		lookupTable[i*3+1] = byte(g >> 8)
+		lookupTable[i*3+2] = byte(b >> 8)
+	}
+
+	return types.Array{
+		types.Name(IndexedCS),
+		types.Name(DeviceRGBCS),
+		types.Integer(hival),
+		types.StringLiteral(string(lookupTable)),
+	}
+}
+
 // CreateFlateImageStreamDict returns a flate stream dict.
-func CreateFlateImageStreamDict(xRefTable *XRefTable, buf, sm []byte, w, h, bpc int, cs string) (*types.StreamDict, error) {
+// The cs parameter accepts either types.Name for simple color spaces (DeviceRGB, DeviceGray)
+// or types.Array for complex color spaces (Indexed).
+func CreateFlateImageStreamDict(xRefTable *XRefTable, buf, sm []byte, w, h, bpc int, cs types.Object) (*types.StreamDict, error) {
 	var softMaskIndRef *types.IndirectRef
 	if sm != nil {
 		var err error
@@ -135,7 +180,7 @@ func CreateFlateImageStreamDict(xRefTable *XRefTable, buf, sm []byte, w, h, bpc 
 				"Width":            types.Integer(w),
 				"Height":           types.Integer(h),
 				"BitsPerComponent": types.Integer(bpc),
-				"ColorSpace":       types.Name(cs),
+				"ColorSpace":       cs,
 			},
 		),
 		Content:        buf,
@@ -550,7 +595,7 @@ func createImageStreamDict(xRefTable *XRefTable, buf, softMask []byte, w, h, bpc
 	case "jpeg":
 		sd, err = CreateDCTImageStreamDict(xRefTable, buf, w, h, bpc, cs)
 	default:
-		sd, err = CreateFlateImageStreamDict(xRefTable, buf, softMask, w, h, bpc, cs)
+		sd, err = CreateFlateImageStreamDict(xRefTable, buf, softMask, w, h, bpc, types.Name(cs))
 	}
 	return sd, err
 }
@@ -921,6 +966,17 @@ func CreateImageStreamDict(xRefTable *XRefTable, r io.Reader) (*types.StreamDict
 	w, h := img.Bounds().Dx(), img.Bounds().Dy()
 	if w != c.Width || h != c.Height {
 		return nil, 0, 0, errors.New("pdfcpu: unexpected width or height")
+	}
+
+	// Handle indexed color (paletted) images specially to preserve the color space
+	if palettedImg, ok := img.(*image.Paletted); ok {
+		buf := writePalettedImageBuf(palettedImg)
+		colorSpace := createIndexedColorSpace(palettedImg.Palette)
+		sd, err := CreateFlateImageStreamDict(xRefTable, buf, nil, w, h, 8, colorSpace)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		return sd, w, h, nil
 	}
 
 	gray := checkIfGray(img)
