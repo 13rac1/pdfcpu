@@ -194,3 +194,187 @@ func TestErrUnsupportedFilter(t *testing.T) {
 		t.Error("ErrUnsupportedFilter.Error() should not be empty")
 	}
 }
+
+func TestASCII85DecodeMissingEOD(t *testing.T) {
+	f, err := filter.NewFilter(filter.ASCII85, nil)
+	if err != nil {
+		t.Fatalf("NewFilter(ASCII85) error = %v", err)
+	}
+
+	// Encode some data
+	encoded, err := f.Encode(strings.NewReader("Hello"))
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	// Read encoded bytes
+	encodedBytes, err := io.ReadAll(encoded)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+
+	// Remove the EOD marker (~>)
+	if len(encodedBytes) >= 2 {
+		encodedBytes = encodedBytes[:len(encodedBytes)-2]
+	}
+
+	// Attempt to decode - should fail
+	_, err = f.Decode(strings.NewReader(string(encodedBytes)))
+	if err == nil {
+		t.Error("Decode() should return error when EOD marker is missing")
+	}
+	if !strings.Contains(err.Error(), "missing eod marker") {
+		t.Errorf("Decode() error = %q, want error containing 'missing eod marker'", err.Error())
+	}
+}
+
+func TestASCIIHexDecodeInvalidHex(t *testing.T) {
+	f, err := filter.NewFilter(filter.ASCIIHex, nil)
+	if err != nil {
+		t.Fatalf("NewFilter(ASCIIHex) error = %v", err)
+	}
+
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"invalid chars", "GHIJ>"},   // G, H, I, J are not valid hex
+		{"mixed invalid", "48GG65>"}, // GG is invalid
+		{"only invalid", "XYZ>"},     // X, Y, Z are not valid hex
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := f.Decode(strings.NewReader(tt.input))
+			if err == nil {
+				t.Errorf("Decode(%q) should return error for invalid hex", tt.input)
+			}
+		})
+	}
+}
+
+func TestLZWDecodeUnsupportedPredictor(t *testing.T) {
+	// LZW with predictor > 1 should fail
+	parms := map[string]int{"Predictor": 12}
+	f, err := filter.NewFilter(filter.LZW, parms)
+	if err != nil {
+		t.Fatalf("NewFilter(LZW, parms) error = %v", err)
+	}
+
+	// First encode some data without predictor
+	fNoPredictor, _ := filter.NewFilter(filter.LZW, nil)
+	encoded, err := fNoPredictor.Encode(strings.NewReader("Hello, World!"))
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	encodedBytes, err := io.ReadAll(encoded)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+
+	// Try to decode with predictor - should fail
+	_, err = f.Decode(strings.NewReader(string(encodedBytes)))
+	if err == nil {
+		t.Error("Decode() should return error for unsupported predictor")
+	}
+	if !strings.Contains(err.Error(), "unsupported predictor") {
+		t.Errorf("Decode() error = %q, want error containing 'unsupported predictor'", err.Error())
+	}
+}
+
+func TestFlateDecodeInvalidPredictor(t *testing.T) {
+	// Flate with invalid predictor value should fail
+	parms := map[string]int{"Predictor": 99} // Invalid predictor
+	f, err := filter.NewFilter(filter.Flate, parms)
+	if err != nil {
+		t.Fatalf("NewFilter(Flate, parms) error = %v", err)
+	}
+
+	// First encode some data without predictor
+	fNoPredictor, _ := filter.NewFilter(filter.Flate, nil)
+	encoded, err := fNoPredictor.Encode(strings.NewReader("Hello, World!"))
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	encodedBytes, err := io.ReadAll(encoded)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+
+	// Try to decode with invalid predictor - should fail
+	_, err = f.Decode(strings.NewReader(string(encodedBytes)))
+	if err == nil {
+		t.Error("Decode() should return error for invalid predictor")
+	}
+	if !strings.Contains(err.Error(), "undefined") || !strings.Contains(err.Error(), "Predictor") {
+		t.Errorf("Decode() error = %q, want error about undefined Predictor", err.Error())
+	}
+}
+
+func TestFlateDecodeInvalidBPC(t *testing.T) {
+	// Flate with invalid BitsPerComponent should fail
+	parms := map[string]int{
+		"Predictor":        12,
+		"BitsPerComponent": 7, // Invalid - must be 1, 2, 4, 8, or 16
+	}
+	f, err := filter.NewFilter(filter.Flate, parms)
+	if err != nil {
+		t.Fatalf("NewFilter(Flate, parms) error = %v", err)
+	}
+
+	// First encode some data
+	fNoPredictor, _ := filter.NewFilter(filter.Flate, nil)
+	encoded, err := fNoPredictor.Encode(strings.NewReader("Hello, World!"))
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	encodedBytes, err := io.ReadAll(encoded)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+
+	// Try to decode - should fail due to invalid BPC
+	_, err = f.Decode(strings.NewReader(string(encodedBytes)))
+	if err == nil {
+		t.Error("Decode() should return error for invalid BitsPerComponent")
+	}
+	if !strings.Contains(err.Error(), "BitsPerComponent") {
+		t.Errorf("Decode() error = %q, want error about BitsPerComponent", err.Error())
+	}
+}
+
+func TestFlateDecodeZeroColors(t *testing.T) {
+	// Flate with Colors=0 should fail
+	parms := map[string]int{
+		"Predictor": 12,
+		"Colors":    0, // Invalid - must be > 0
+	}
+	f, err := filter.NewFilter(filter.Flate, parms)
+	if err != nil {
+		t.Fatalf("NewFilter(Flate, parms) error = %v", err)
+	}
+
+	// First encode some data
+	fNoPredictor, _ := filter.NewFilter(filter.Flate, nil)
+	encoded, err := fNoPredictor.Encode(strings.NewReader("Hello, World!"))
+	if err != nil {
+		t.Fatalf("Encode() error = %v", err)
+	}
+
+	encodedBytes, err := io.ReadAll(encoded)
+	if err != nil {
+		t.Fatalf("ReadAll() error = %v", err)
+	}
+
+	// Try to decode - should fail due to Colors=0
+	_, err = f.Decode(strings.NewReader(string(encodedBytes)))
+	if err == nil {
+		t.Error("Decode() should return error for Colors=0")
+	}
+	if !strings.Contains(err.Error(), "Colors") {
+		t.Errorf("Decode() error = %q, want error about Colors", err.Error())
+	}
+}
