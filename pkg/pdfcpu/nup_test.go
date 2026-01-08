@@ -493,3 +493,197 @@ func TestParseBookletFolioSize(t *testing.T) {
 		})
 	}
 }
+
+func TestParseNUpValue(t *testing.T) {
+	tests := []struct {
+		name       string
+		n          int
+		wantErr    bool
+		wantWidth  float64
+		wantHeight float64
+		setupNUp   func() *model.NUp
+	}{
+		{
+			name:       "2-up portrait A4",
+			n:          2,
+			wantErr:    false,
+			wantWidth:  1,
+			wantHeight: 2,
+			setupNUp: func() *model.NUp {
+				nup := model.DefaultNUpConfig()
+				nup.PageSize = "A4"
+				nup.PageDim = nil
+				return nup
+			},
+		},
+		{
+			name:       "4-up portrait A4",
+			n:          4,
+			wantErr:    false,
+			wantWidth:  2,
+			wantHeight: 2,
+			setupNUp: func() *model.NUp {
+				nup := model.DefaultNUpConfig()
+				nup.PageSize = "A4"
+				nup.PageDim = nil
+				return nup
+			},
+		},
+		{
+			name:       "9-up portrait",
+			n:          9,
+			wantErr:    false,
+			wantWidth:  3,
+			wantHeight: 3,
+			setupNUp: func() *model.NUp {
+				nup := model.DefaultNUpConfig()
+				nup.PageSize = "A4"
+				nup.PageDim = nil
+				return nup
+			},
+		},
+		{
+			name:       "16-up portrait",
+			n:          16,
+			wantErr:    false,
+			wantWidth:  4,
+			wantHeight: 4,
+			setupNUp: func() *model.NUp {
+				nup := model.DefaultNUpConfig()
+				nup.PageSize = "A4"
+				nup.PageDim = nil
+				return nup
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			nup := tt.setupNUp()
+			err := ParseNUpValue(tt.n, nup)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseNUpValue(%d) error = %v, wantErr %v", tt.n, err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				if nup.Grid == nil {
+					t.Error("ParseNUpValue() Grid is nil")
+					return
+				}
+				if nup.Grid.Width != tt.wantWidth {
+					t.Errorf("ParseNUpValue(%d) Grid.Width = %v, want %v", tt.n, nup.Grid.Width, tt.wantWidth)
+				}
+				if nup.Grid.Height != tt.wantHeight {
+					t.Errorf("ParseNUpValue(%d) Grid.Height = %v, want %v", tt.n, nup.Grid.Height, tt.wantHeight)
+				}
+			}
+		})
+	}
+}
+
+func TestParseNUpGridDefinition(t *testing.T) {
+	tests := []struct {
+		name       string
+		rows       int
+		cols       int
+		wantErr    bool
+		wantWidth  float64
+		wantHeight float64
+	}{
+		{
+			name:       "valid 2x2 grid",
+			rows:       2,
+			cols:       2,
+			wantErr:    false,
+			wantWidth:  2,
+			wantHeight: 2,
+		},
+		{
+			name:       "valid 3x4 grid",
+			rows:       3,
+			cols:       4,
+			wantErr:    false,
+			wantWidth:  4,
+			wantHeight: 3,
+		},
+		{
+			name:       "valid 1x1 grid",
+			rows:       1,
+			cols:       1,
+			wantErr:    false,
+			wantWidth:  1,
+			wantHeight: 1,
+		},
+		{
+			name:       "valid large grid",
+			rows:       10,
+			cols:       15,
+			wantErr:    false,
+			wantWidth:  15,
+			wantHeight: 10,
+		},
+		{
+			name:    "zero rows",
+			rows:    0,
+			cols:    2,
+			wantErr: true,
+		},
+		{
+			name:    "zero cols",
+			rows:    2,
+			cols:    0,
+			wantErr: true,
+		},
+		{
+			name:    "negative rows",
+			rows:    -1,
+			cols:    2,
+			wantErr: true,
+		},
+		{
+			name:    "negative cols",
+			rows:    2,
+			cols:    -1,
+			wantErr: true,
+		},
+		{
+			name:    "both zero",
+			rows:    0,
+			cols:    0,
+			wantErr: true,
+		},
+		{
+			name:    "both negative",
+			rows:    -1,
+			cols:    -1,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			nup := model.DefaultNUpConfig()
+			err := ParseNUpGridDefinition(tt.rows, tt.cols, nup)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseNUpGridDefinition(%d, %d) error = %v, wantErr %v", tt.rows, tt.cols, err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				if nup.Grid == nil {
+					t.Error("ParseNUpGridDefinition() Grid is nil")
+					return
+				}
+				if nup.Grid.Width != tt.wantWidth {
+					t.Errorf("ParseNUpGridDefinition(%d, %d) Grid.Width = %v, want %v", tt.rows, tt.cols, nup.Grid.Width, tt.wantWidth)
+				}
+				if nup.Grid.Height != tt.wantHeight {
+					t.Errorf("ParseNUpGridDefinition(%d, %d) Grid.Height = %v, want %v", tt.rows, tt.cols, nup.Grid.Height, tt.wantHeight)
+				}
+			}
+		})
+	}
+}
