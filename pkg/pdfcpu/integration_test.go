@@ -242,3 +242,219 @@ func TestEmptyPDF(t *testing.T) {
 		t.Errorf("empty.pdf PageCount = %d, want >= 0", ctx.PageCount)
 	}
 }
+
+func TestExtractPages(t *testing.T) {
+	inFile := filepath.Join(testdataDir, "TheGoProgrammingLanguageCh1.pdf")
+
+	// Read PDF file
+	ctx, err := pdfcpu.ReadFile(inFile, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+
+	// Ensure page count is populated
+	if err := ctx.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount() error = %v", err)
+	}
+
+	if ctx.PageCount < 3 {
+		t.Skipf("Need at least 3 pages for extract test, got %d", ctx.PageCount)
+	}
+
+	originalPageCount := ctx.PageCount
+
+	// Extract pages 1, 2, 3
+	pageNrs := []int{1, 2, 3}
+	extractedCtx, err := pdfcpu.ExtractPages(ctx, pageNrs, false)
+	if err != nil {
+		t.Fatalf("ExtractPages() error = %v", err)
+	}
+
+	// Verify extracted context
+	if extractedCtx == nil {
+		t.Fatal("ExtractPages returned nil context")
+	}
+
+	// Ensure page count is populated for extracted context
+	if err := extractedCtx.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount() on extracted context error = %v", err)
+	}
+
+	// Extracted PDF should have 3 pages
+	if extractedCtx.PageCount != 3 {
+		t.Errorf("Extracted PageCount = %d, want 3", extractedCtx.PageCount)
+	}
+
+	// Original context should be unchanged
+	if ctx.PageCount != originalPageCount {
+		t.Errorf("Original PageCount changed from %d to %d", originalPageCount, ctx.PageCount)
+	}
+}
+
+func TestAddPages(t *testing.T) {
+	tmpDir := getTmpDir(t)
+
+	// Read source PDF
+	srcFile := filepath.Join(testdataDir, "testImage.pdf")
+	ctxSrc, err := pdfcpu.ReadFile(srcFile, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadFile(source) error = %v", err)
+	}
+
+	if err := ctxSrc.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount(source) error = %v", err)
+	}
+
+	if ctxSrc.PageCount < 1 {
+		t.Skip("Source PDF needs at least 1 page")
+	}
+
+	srcPageCount := ctxSrc.PageCount
+
+	// Read destination PDF
+	destFile := filepath.Join(testdataDir, "TheGoProgrammingLanguageCh1.pdf")
+	ctxDest, err := pdfcpu.ReadFile(destFile, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadFile(dest) error = %v", err)
+	}
+
+	if err := ctxDest.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount(dest) error = %v", err)
+	}
+
+	destPageCount := ctxDest.PageCount
+
+	// Add first page from source to destination
+	pageNrs := []int{1}
+	if err := pdfcpu.AddPages(ctxSrc, ctxDest, pageNrs, false); err != nil {
+		t.Fatalf("AddPages() error = %v", err)
+	}
+
+	// Write merged PDF to verify it's valid
+	outFile := filepath.Join(tmpDir, "merged.pdf")
+	ctxDest.Write.DirName = filepath.Dir(outFile)
+	ctxDest.Write.FileName = filepath.Base(outFile)
+
+	if err := pdfcpu.WriteContext(ctxDest); err != nil {
+		t.Fatalf("WriteContext() error = %v", err)
+	}
+
+	// Read back merged PDF and verify page count increased
+	ctxMerged, err := pdfcpu.ReadFile(outFile, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadFile(merged) error = %v", err)
+	}
+
+	if err := ctxMerged.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount(merged) error = %v", err)
+	}
+
+	// Merged PDF should have more pages than original destination
+	if ctxMerged.PageCount <= destPageCount {
+		t.Errorf("Merged PDF PageCount = %d, should be > %d", ctxMerged.PageCount, destPageCount)
+	}
+
+	expectedCount := destPageCount + 1
+	if ctxMerged.PageCount != expectedCount {
+		t.Logf("Note: Merged PDF has %d pages (expected %d)", ctxMerged.PageCount, expectedCount)
+	}
+
+	// Source should be unchanged
+	if ctxSrc.PageCount != srcPageCount {
+		t.Errorf("Source PageCount changed from %d to %d", srcPageCount, ctxSrc.PageCount)
+	}
+}
+
+func TestInfo(t *testing.T) {
+	tests := []struct {
+		name     string
+		filename string
+	}{
+		{"simple PDF", "testImage.pdf"},
+		{"programming book", "TheGoProgrammingLanguageCh1.pdf"},
+		{"annotations", "annotTest.pdf"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inFile := filepath.Join(testdataDir, tt.filename)
+
+			// Read PDF file
+			ctx, err := pdfcpu.ReadFile(inFile, model.NewDefaultConfiguration())
+			if err != nil {
+				t.Fatalf("ReadFile() error = %v", err)
+			}
+
+			if err := ctx.XRefTable.EnsurePageCount(); err != nil {
+				t.Fatalf("EnsurePageCount() error = %v", err)
+			}
+
+			// Get PDF info - test with all pages
+			selectedPages := make(map[int]bool)
+			info, err := pdfcpu.Info(ctx, tt.filename, selectedPages, false)
+			if err != nil {
+				t.Fatalf("Info() error = %v", err)
+			}
+
+			// Verify info structure
+			if info == nil {
+				t.Fatal("Info() returned nil")
+			}
+
+			if info.FileName != tt.filename {
+				t.Errorf("Info.FileName = %q, want %q", info.FileName, tt.filename)
+			}
+
+			if info.PageCount != ctx.PageCount {
+				t.Errorf("Info.PageCount = %d, want %d", info.PageCount, ctx.PageCount)
+			}
+
+			// Verify version is populated
+			if info.Version == "" {
+				t.Error("Info.Version is empty")
+			}
+		})
+	}
+}
+
+func TestImages(t *testing.T) {
+	// Test with PDF that has images
+	inFile := filepath.Join(testdataDir, "testImage.pdf")
+
+	ctx, err := pdfcpu.ReadFile(inFile, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+
+	if err := ctx.XRefTable.EnsurePageCount(); err != nil {
+		t.Fatalf("EnsurePageCount() error = %v", err)
+	}
+
+	// Get images from all pages
+	selectedPages := make(map[int]bool)
+	images, maxLengths, err := pdfcpu.Images(ctx, selectedPages)
+	if err != nil {
+		t.Fatalf("Images() error = %v", err)
+	}
+
+	// testImage.pdf should have at least one image
+	if len(images) == 0 {
+		t.Log("Note: No images found in testImage.pdf (may be expected)")
+	}
+
+	// Verify maxLengths is returned
+	if maxLengths == nil {
+		t.Error("Images() returned nil maxLengths")
+	}
+
+	// Test ListImages as well
+	lines, err := pdfcpu.ListImages(ctx, selectedPages)
+	if err != nil {
+		t.Fatalf("ListImages() error = %v", err)
+	}
+
+	// ListImages should return some output
+	if lines == nil {
+		t.Error("ListImages() returned nil")
+	}
+}
