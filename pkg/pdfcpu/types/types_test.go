@@ -689,6 +689,56 @@ func TestToUserSpace(t *testing.T) {
 	}
 }
 
+func TestRectForFormat(t *testing.T) {
+	tests := []struct {
+		format string
+		wantW  float64
+		wantH  float64
+	}{
+		{"A4", 595.0, 842.0},     // A4 is 595 x 842 points
+		{"Letter", 612.0, 792.0}, // Letter is 612 x 792 points
+		{"A3", 842.0, 1191.0},
+		{"Legal", 612.0, 1008.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.format, func(t *testing.T) {
+			r := RectForFormat(tt.format)
+			if r == nil {
+				t.Fatalf("RectForFormat(%q) returned nil", tt.format)
+			}
+			if math.Abs(r.Width()-tt.wantW) > 1.0 {
+				t.Errorf("Width = %v, want %v", r.Width(), tt.wantW)
+			}
+			if math.Abs(r.Height()-tt.wantH) > 1.0 {
+				t.Errorf("Height = %v, want %v", r.Height(), tt.wantH)
+			}
+		})
+	}
+}
+
+func TestPaperSizes(t *testing.T) {
+	// Test that common paper sizes exist in the map
+	commonSizes := []string{
+		"A0", "A1", "A2", "A3", "A4", "A5", "A6",
+		"Letter", "Legal", "Tabloid", "Ledger",
+		"B0", "B1", "B2", "B3", "B4", "B5",
+	}
+
+	for _, size := range commonSizes {
+		t.Run(size, func(t *testing.T) {
+			dim, ok := PaperSize[size]
+			if !ok {
+				t.Errorf("PaperSize[%q] not found", size)
+				return
+			}
+			if dim.Width <= 0 || dim.Height <= 0 {
+				t.Errorf("PaperSize[%q] has invalid dimensions: %v", size, dim)
+			}
+		})
+	}
+}
+
 func TestConstants(t *testing.T) {
 	t.Run("EOL constants", func(t *testing.T) {
 		if EolLF != "\x0A" {

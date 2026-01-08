@@ -440,3 +440,62 @@ func TestEncodeDecodeNameRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestUTF8ToCP1252(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Hello", "Hello"},
+		{"ABC", "ABC"},
+		{"123", "123"},
+		{"", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			got := UTF8ToCP1252(test.input)
+			if got != test.expected {
+				t.Errorf("UTF8ToCP1252(%q) = %q, want %q", test.input, got, test.expected)
+			}
+		})
+	}
+}
+
+func TestCP1252ToUTF8(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"Hello", "Hello"},
+		{"ABC", "ABC"},
+		{"123", "123"},
+		{"", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			got := CP1252ToUTF8(test.input)
+			if got != test.expected {
+				t.Errorf("CP1252ToUTF8(%q) = %q, want %q", test.input, got, test.expected)
+			}
+		})
+	}
+}
+
+func TestCP1252UTF8RoundTrip(t *testing.T) {
+	// ASCII strings should round-trip perfectly
+	tests := []string{
+		"Hello World",
+		"Test 123",
+		"Special: !@#$%^&*()",
+	}
+
+	for _, input := range tests {
+		cp := UTF8ToCP1252(input)
+		utf := CP1252ToUTF8(cp)
+		if utf != input {
+			t.Errorf("roundtrip failed: input=%q -> CP1252=%q -> UTF8=%q", input, cp, utf)
+		}
+	}
+}
